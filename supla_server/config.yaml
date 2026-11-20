@@ -1,0 +1,39 @@
+name: SUPLA Server
+version: "0.1.0"
+slug: supla_server
+description: Self-hosted SUPLA Cloud and SUPLA Server, so SUPLA devices work without cloud.supla.org
+url: https://github.com/andyli/ha-supla-server
+arch:
+  - aarch64
+  - amd64
+startup: services
+boot: auto
+init: false
+timeout: 120
+services:
+  - mqtt:want
+map:
+  - type: ssl
+ports:
+  2016/tcp: 2016
+  2015/tcp: null
+  443/tcp: 443
+  80/tcp: null
+webui: "https://[HOST]:[PORT:443]/"
+watchdog: "tcp://[HOST]:[PORT:2016]"
+backup: hot
+backup_pre: /usr/local/bin/supla-backup-pre
+backup_exclude:
+  - mysql
+options:
+  host_address: ""
+  accounts_registration: false
+  mqtt: true
+schema:
+  host_address: str
+  user_email: "email?"
+  user_password: "password?"
+  accounts_registration: bool
+  mqtt: bool
+  ssl_certfile: "str?"
+  ssl_keyfile: "str?"

@@ -1,0 +1,5 @@
+#!/command/with-contenv bash
+# shellcheck disable=SC1091
+. /etc/apache2/envvars
+mkdir -p "${APACHE_RUN_DIR}" "${APACHE_LOCK_DIR}" "${APACHE_LOG_DIR}"
+exec apache2 -DFOREGROUND

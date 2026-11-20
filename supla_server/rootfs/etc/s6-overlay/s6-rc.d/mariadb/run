@@ -1,0 +1,3 @@
+#!/command/with-contenv bash
+# Signals readiness to s6 (fd 3) once the server answers a ping, so init-cloud starts only then.
+exec s6-notifyoncheck -d -n 0 -w 1000 -c "mariadb-admin ping --silent" mariadbd --user=mysql

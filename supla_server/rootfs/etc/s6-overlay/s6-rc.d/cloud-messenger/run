@@ -1,0 +1,4 @@
+#!/command/with-contenv bash
+# Replaces upstream's per-minute cron job; s6 restarts it when the time limit is reached.
+cd /var/www/cloud || exit 1
+exec s6-setuidgid www-data php bin/console messenger:consume --no-interaction --memory-limit=128M --time-limit=3600 -q

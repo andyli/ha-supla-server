@@ -1,0 +1,3 @@
+#!/bin/bash
+# SUPLA Cloud console, e.g. `supla-console supla:user:create`.
+cd /var/www/cloud && exec s6-setuidgid www-data php bin/console "$@"

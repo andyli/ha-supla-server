@@ -1,0 +1,7 @@
+#!/command/with-contenv bash
+# Replaces upstream's per-minute cron job.
+cd /var/www/cloud || exit 1
+while true; do
+  s6-setuidgid www-data php bin/console supla:dispatch-cyclic-tasks --no-interaction
+  sleep $((60 - $(date +%s) % 60))
+done

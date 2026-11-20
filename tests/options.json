@@ -1,0 +1,7 @@
+{
+  "host_address": "localhost:8443",
+  "accounts_registration": false,
+  "mqtt": true,
+  "user_email": "test@example.com",
+  "user_password": "TestPass123!"
+}

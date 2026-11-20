@@ -1,0 +1,31 @@
+configuration:
+  host_address:
+    name: Host address
+    description: >-
+      Address of this Home Assistant as SUPLA apps and browsers reach it, e.g. 192.168.1.10.
+      Add :port if you changed the HTTPS port.
+  user_email:
+    name: Account email
+    description: Creates this SUPLA Cloud account on start if it does not exist yet.
+  user_password:
+    name: Account password
+    description: Used only when the account is created. Change it later in SUPLA Cloud.
+  accounts_registration:
+    name: Allow account sign-up
+    description: Lets anyone who can reach the web UI create an account.
+  mqtt:
+    name: Publish to MQTT
+    description: >-
+      Publishes devices to the Mosquitto broker app, with Home Assistant MQTT discovery.
+      Turns on MQTT for every SUPLA Cloud account.
+  ssl_certfile:
+    name: Certificate file
+    description: Certificate in /ssl for the web UI. Leave empty for a self-signed one.
+  ssl_keyfile:
+    name: Private key file
+    description: Private key in /ssl for the web UI.
+network:
+  2016/tcp: SUPLA devices and apps (TLS)
+  2015/tcp: SUPLA devices (no TLS, for old devices)
+  443/tcp: SUPLA Cloud web UI and API (HTTPS)
+  80/tcp: SUPLA Cloud web UI and API (HTTP)
