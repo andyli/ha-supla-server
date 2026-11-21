@@ -41,7 +41,21 @@ supla_server/
     usr/local/bin/            supla-backup-pre, supla-console
 tests/
   run-local.sh                Run the app with plain Docker, with a stub Supervisor and Mosquitto
+tools/
+  supla_cloud.py              List devices and rename channels through the SUPLA Cloud API
 ```
+
+## Tools
+
+[tools/supla_cloud.py](tools/supla_cloud.py) talks to a SUPLA Cloud instance through its API. It needs only Python. Use it to name channels after moving devices, without opening the web UI:
+
+```sh
+export SUPLA_URL=https://192.168.1.10 SUPLA_EMAIL=you@example.com
+tools/supla_cloud.py --insecure devices                 # devices, channels and their captions
+tools/supla_cloud.py --insecure rename-channel 1 "kitchen table dimmer"
+```
+
+The password comes from `SUPLA_PASSWORD`, or the tool asks for it. `--insecure` skips the certificate check, which the app's self-signed certificate needs.
 
 ## Development
 

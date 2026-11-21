@@ -18,17 +18,30 @@ With the Mosquitto broker app installed, devices show up in Home Assistant throu
 4. Start the app and open the web UI. The certificate is self-signed, so your browser will warn you the first time.
 5. Log in with the account from step 3.
 
+## Connecting the SUPLA mobile app
+
+In the SUPLA app, add an account (or edit one) with **Advanced** on:
+
+- **E-mail address**: the account email from the app configuration.
+- **Server address**: your Home Assistant's address only, e.g. `192.168.1.10`. No `https://` and no port: the app connects to supla-server on port 2016, not to the web UI. With a URL here, the app shows "Host not found".
+- **Auto**: off. Auto looks the email up on `autodiscover.supla.org`, which only knows SUPLA's own servers.
+
+A new account accepts new phones and devices for its first 7 days. After that, turn on **Client registration** on the **Smartphones** page before adding a phone, or **I/O devices registration** on the **My SUPLA** page before adding a device.
+
+On Android 16 and later, apps need the **Nearby devices** (local network) permission to reach addresses on your home network. Without it the SUPLA app can't connect, and browsers fail with `ERR_TOO_MANY_RETRIES` when opening the web UI. Allow it in **Settings → Apps → *the app* → Permissions**.
+
 ## Moving a device to this server
 
-Each SUPLA device stores a server address and an account email. To move a device here:
+Each SUPLA device stores a server address and an account email. Moving it here gives it a new ID, so Home Assistant creates a new entity for it.
 
-1. In SUPLA Cloud on this app, open **My SUPLA** and turn on **I/O devices registration**. It switches itself off after a while. A new account starts with it on for 7 days.
-2. Put the device into configuration mode. This is usually a long press on its button; see the device manual. The device opens a Wi-Fi access point.
-3. Connect to that access point and open the device's page, usually `http://192.168.4.1`.
-4. Set **Server** to your Home Assistant's address (IP only, no port) and **E-mail** to the account email from the app configuration. Keep your Wi-Fi settings, then save.
-5. The device restarts and shows up in SUPLA Cloud and, a few seconds later, in Home Assistant.
+1. Connect the SUPLA app to this server (see above).
+2. Reset the device's settings: put it into configuration mode (usually a long press on its button; see the device manual).
+3. In the SUPLA app, add the device with **Add device**. The app connects to the device's Wi-Fi access point and writes your Wi-Fi settings, this server's address and your account email to it.
+4. The device restarts and connects. It shows up in SUPLA Cloud and, a few seconds later, in Home Assistant.
 
-A device that moves gets a new ID on this server, so Home Assistant creates new entities for it. Update your automations and dashboards to the new entities.
+You can also set the server by hand: in configuration mode, connect to the device's access point, open its page (usually `http://192.168.4.1`), and set **Server** (address only, no port) and **E-mail**.
+
+Then, in SUPLA Cloud, give the channel the name it had before. Home Assistant updates the entity's name from MQTT discovery, but not its entity ID. To keep automations and dashboards working, rename the old entity's ID out of the way and give its ID to the new entity (**Settings → Entities**), and set the device's area again.
 
 ## MQTT
 
@@ -39,7 +52,7 @@ When **Publish to MQTT** is on and the Mosquitto broker app is installed, supla-
 
 The app also turns on MQTT for every SUPLA Cloud account. You can't turn it off per account here.
 
-If you used to bridge your Mosquitto broker to SUPLA's MQTT broker (`mqttXXX.supla.org`), remove that bridge once all devices have moved. Otherwise both send messages under the same `homeassistant/` topics.
+If you used to bridge your Mosquitto broker to SUPLA's MQTT broker (`mqttXXX.supla.org`), the moved devices keep an unavailable copy in Home Assistant that comes from the bridge. Deleting that copy in Home Assistant doesn't help: the bridge brings its discovery message back. Delete the device from your cloud.supla.org account instead, or remove the bridge once all devices have moved.
 
 ## Configuration
 
