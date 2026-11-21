@@ -2,6 +2,8 @@
 
 A Home Assistant app (formerly add-on) that runs [SUPLA](https://www.supla.org) Cloud and SUPLA Server locally, so SUPLA devices work without `cloud.supla.org`.
 
+**Unofficial:** this app is not made, supported or endorsed by SUPLA. The SUPLA name and logo belong to their owners.
+
 User documentation: [supla_server/DOCS.md](supla_server/DOCS.md).
 
 ## Install
