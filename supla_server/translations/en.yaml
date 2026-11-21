@@ -3,7 +3,7 @@ configuration:
     name: Host address
     description: >-
       Address of this Home Assistant as SUPLA apps and browsers reach it, e.g. 192.168.1.10.
-      Add :port if you changed the HTTPS port.
+      The app adds the web UI port itself.
   user_email:
     name: Account email
     description: Creates this SUPLA Cloud account on start if it does not exist yet.
@@ -25,7 +25,7 @@ configuration:
     name: Private key file
     description: Private key in /ssl for the web UI.
 network:
-  2016/tcp: SUPLA devices and apps (TLS)
-  2015/tcp: SUPLA devices (no TLS, for old devices)
+  2016/tcp: "SUPLA devices and apps (TLS). Don't change: devices and the SUPLA apps always use 2016."
+  2015/tcp: "SUPLA devices without TLS (old devices). Don't change: devices always use 2015."
   443/tcp: SUPLA Cloud web UI and API (HTTPS)
   80/tcp: SUPLA Cloud web UI and API (HTTP)

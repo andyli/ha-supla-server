@@ -1,5 +1,5 @@
 {
-  "host_address": "localhost:8443",
+  "host_address": "localhost",
   "accounts_registration": false,
   "mqtt": true,
   "user_email": "test@example.com",

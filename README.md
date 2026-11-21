@@ -50,7 +50,7 @@ tools/
 [tools/supla_cloud.py](tools/supla_cloud.py) talks to a SUPLA Cloud instance through its API. It needs only Python. Use it to name channels after moving devices, without opening the web UI:
 
 ```sh
-export SUPLA_URL=https://192.168.1.10 SUPLA_EMAIL=you@example.com
+export SUPLA_URL=https://192.168.1.10:4433 SUPLA_EMAIL=you@example.com
 tools/supla_cloud.py --insecure devices                 # devices, channels and their captions
 tools/supla_cloud.py --insecure rename-channel 1 "kitchen table dimmer"
 ```

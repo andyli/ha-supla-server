@@ -27,7 +27,8 @@ class Handler(BaseHTTPRequestHandler):
                 "username": "supla", "password": "secret", "protocol": "3.1.1",
             })
         if self.path == "/addons/self/info":
-            return self._send(200, {"slug": "supla_server", "version": "dev"})
+            return self._send(200, {"slug": "supla_server", "version": "dev",
+                                    "network": {"2016/tcp": 2016, "443/tcp": 8443}})
         self._send(404, {})
 
 

@@ -14,9 +14,20 @@ chown -R www-data:www-data "${DATA}/cloud-local"
 # --- options ---
 host_address=$(bashio::config 'host_address')
 if [[ -z "${host_address}" ]]; then
-  bashio::exit.nok "Set 'host_address' to the address SUPLA apps and browsers use to reach this app, e.g. 192.168.1.10 (add :port if you changed the HTTPS port)."
+  bashio::exit.nok "Set 'host_address' to the address SUPLA apps and browsers use to reach this app, e.g. 192.168.1.10."
 fi
 host_only=${host_address%%:*}
+# SUPLA Cloud needs its address with the port. Without one in host_address,
+# add the host port that the web UI (443/tcp in the container) is mapped to.
+if [[ "${host_address}" != *:* ]]; then
+  https_port=$(bashio::app.port 443)
+  if [[ -z "${https_port}" ]]; then
+    bashio::log.warning "The HTTPS port (443/tcp) is disabled; SUPLA apps won't reach SUPLA Cloud."
+  elif [[ "${https_port}" != 443 ]]; then
+    host_address="${host_address}:${https_port}"
+  fi
+fi
+bashio::log.info "SUPLA Cloud address: https://${host_address}"
 registration=$(bashio::config 'accounts_registration')
 
 # --- generated secrets, kept in /data so they survive restarts and are backed up ---

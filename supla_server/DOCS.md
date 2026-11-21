@@ -13,9 +13,9 @@ With the Mosquitto broker app installed, devices show up in Home Assistant throu
 1. Install the **Mosquitto broker** app, if you haven't already, and set up the MQTT integration.
 2. Install this app.
 3. On the **Configuration** tab, set:
-   - **Host address**: the IP address or host name of your Home Assistant, as your phone sees it, e.g. `192.168.1.10`. If you changed the HTTPS port below, add it: `192.168.1.10:8443`.
+   - **Host address**: the IP address or host name of your Home Assistant, as your phone sees it, e.g. `192.168.1.10`. The app adds the web UI's port (4433 by default) itself.
    - **Account email** and **Account password**: the app creates this SUPLA Cloud account when it starts.
-4. Start the app and open the web UI. The certificate is self-signed, so your browser will warn you the first time.
+4. Start the app and open the web UI (`https://192.168.1.10:4433`). The certificate is self-signed, so your browser will warn you the first time.
 5. Log in with the account from step 3.
 
 ## Connecting the SUPLA mobile app
@@ -58,7 +58,7 @@ If you used to bridge your Mosquitto broker to SUPLA's MQTT broker (`mqttXXX.sup
 
 | Option | Description |
 |---|---|
-| `host_address` | Required. Address of this Home Assistant as SUPLA apps and browsers reach it. |
+| `host_address` | Required. Address of this Home Assistant as SUPLA apps and browsers reach it. The app adds the web UI's port; to use another address or port, for example behind a reverse proxy, include it: `supla.example.com:443`. |
 | `user_email`, `user_password` | Creates this account on start if it doesn't exist. Changing the password here later has no effect. |
 | `accounts_registration` | Lets anyone who can reach the web UI sign up. Off by default. |
 | `mqtt` | Publishes devices to the Mosquitto broker app. On by default. |
@@ -66,14 +66,14 @@ If you used to bridge your Mosquitto broker to SUPLA's MQTT broker (`mqttXXX.sup
 
 ## Network
 
-| Port | Used by |
-|---|---|
-| 2016/tcp | Devices and SUPLA mobile apps, TLS. Devices don't check the certificate. |
-| 2015/tcp | Old devices without TLS. Off by default. |
-| 443/tcp | SUPLA Cloud web UI and API, HTTPS. |
-| 80/tcp | SUPLA Cloud over plain HTTP. Off by default. |
+| Container port | Default host port | Used by |
+|---|---|---|
+| 2016/tcp | 2016 | Devices and SUPLA mobile apps, TLS. Devices don't check the certificate. |
+| 2015/tcp | off | Old devices without TLS. |
+| 443/tcp | 4433 | SUPLA Cloud web UI and API, HTTPS. |
+| 80/tcp | off | SUPLA Cloud over plain HTTP. |
 
-Devices always connect to 2016 or 2015, so don't change those ports.
+Don't change 2016 or 2015: devices and the SUPLA mobile apps always connect to those ports, and neither lets you set another. The web UI port can be anything.
 
 ## Backups
 
