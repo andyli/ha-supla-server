@@ -1,0 +1,22 @@
+# Dev tools for this repository; not a package. The app itself is in supla_server/.
+[project]
+name = "ha-supla-server"
+version = "0.0.0"
+requires-python = ">=3.13,<3.14"
+dependencies = []
+
+[tool.uv]
+package = false
+
+[tool.mypy]
+strict = true
+files = ["tests", "tools"]
+
+[tool.ruff]
+line-length = 120
+
+[dependency-groups]
+dev = [
+    "mypy>=2.4.1",
+    "ruff>=0.17.6",
+]

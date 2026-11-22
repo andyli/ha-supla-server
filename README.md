@@ -42,9 +42,17 @@ supla_server/
     etc/php/                  PHP settings from supla-docker
     usr/local/bin/            supla-backup-pre, supla-console
 tests/
-  run-local.sh                Run the app with plain Docker, with a stub Supervisor and Mosquitto
+  run_local.py                Run the app with plain Docker, with a stub Supervisor and Mosquitto
+  mock_supervisor.py          Stub Supervisor API: app options and the mqtt service
+  options.json                App options for local runs and tests
+  smoke.py                    Smoke test, run inside the app container
 tools/
   supla_cloud.py              List devices and rename channels through the SUPLA Cloud API
+.dagger/                      Dagger module (Python): builds the image, runs the tests
+dagger.json                   Dagger module metadata
+justfile                      Build, run and test commands
+mise.toml, mise.lock          Tool versions (just, dagger, uv)
+pyproject.toml, uv.lock       Python dev tools (mypy, ruff); .python-version sets the Python version
 ```
 
 ## Tools
@@ -61,15 +69,47 @@ The password comes from `SUPLA_PASSWORD`, or the tool asks for it. `--insecure` 
 
 ## Development
 
+You need Docker and [mise](https://mise.jdx.dev). mise installs the other tools, [just](https://just.systems), [Dagger](https://dagger.io), [uv](https://docs.astral.sh/uv/) and Python, at the versions in [mise.toml](mise.toml), `mise.lock` and [.python-version](.python-version). The repository is a [uv project](https://mise.jdx.dev/mise-cookbook/python.html#mise-uv): mise creates and activates `.venv`, and `uv run` installs the dev tools from `uv.lock` into it.
+
+```sh
+mise install
+just              # list the commands
+```
+
 Run the app locally with Docker:
 
 ```sh
-tests/run-local.sh          # build and start; web UI at https://localhost:8443
-tests/run-local.sh logs
-tests/run-local.sh down
+just up           # build and start; web UI at https://localhost:8443
+just logs
+just down
 ```
 
 The options come from [tests/options.json](tests/options.json). The data is stored in `tests/.data/`.
+
+### Tests
+
+```sh
+just test
+```
+
+This runs a smoke test in Dagger. It builds the image and starts it next to a stub Supervisor and Mosquitto. Then [tests/smoke.py](tests/smoke.py) runs inside the container as its main command, after s6-overlay has started all services. It checks that:
+
+- the init steps succeed (if one fails, s6 stops the container and the test fails)
+- the web UI answers on 443, and the account from `tests/options.json` can log in
+- supla-server listens on 2016 and 2015
+- no service is down or restarts within 30 seconds
+
+The first run takes several minutes because it compiles supla-core. Later runs reuse Dagger's build cache.
+
+To test other options, pass a file: `dagger call smoke-test --options=path/to/options.json`.
+
+### Lint
+
+```sh
+just lint
+```
+
+This type-checks `tests/` and `tools/` with mypy in strict mode and lints all Python code with ruff. Their settings are in [pyproject.toml](pyproject.toml). Python is 3.13 everywhere: `.python-version`, `.dagger/.python-version`, and the images the tests use.
 
 To try it on a Home Assistant box, copy `supla_server/` into the box's `/addons` folder, called `local_apps` in newer docs. Then go to **Settings → Apps → Install app**, choose **Check for updates**, and install it from **Local apps**.
 

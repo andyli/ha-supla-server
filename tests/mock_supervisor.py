@@ -6,10 +6,11 @@ when MQTT_HOST is set, the `mqtt` service.
 import json
 import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from typing import Any
 
 
 class Handler(BaseHTTPRequestHandler):
-    def _send(self, code, data):
+    def _send(self, code: int, data: dict[str, Any]) -> None:
         body = json.dumps({"result": "ok" if code == 200 else "error", "data": data}).encode()
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
@@ -17,7 +18,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def do_GET(self):
+    def do_GET(self) -> None:
         if self.path == "/addons/self/options/config":
             with open("/options.json") as f:
                 return self._send(200, json.load(f))

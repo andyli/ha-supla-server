@@ -25,17 +25,19 @@ import ssl
 import sys
 import urllib.error
 import urllib.request
+from typing import Any
 
 
 class Cloud:
-    def __init__(self, url, email, password, insecure):
+    def __init__(self, url: str, email: str, password: str, insecure: bool) -> None:
         self.base = url.rstrip("/") + "/api"
         self.ctx = ssl._create_unverified_context() if insecure else ssl.create_default_context()
+        self.token: str | None = None
         self.token = self._call("POST", "/webapp-auth", {"username": email, "password": password})["access_token"]
 
-    def _call(self, method, path, body=None):
+    def _call(self, method: str, path: str, body: dict[str, Any] | None = None) -> Any:
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
-        if getattr(self, "token", None):
+        if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
         req = urllib.request.Request(
             self.base + path, method=method, headers=headers,
@@ -47,15 +49,17 @@ class Cloud:
             sys.exit(f"{method} {path}: HTTP {e.code}: {e.read().decode()[:300]}")
         return json.loads(raw) if raw else None
 
-    def devices(self):
-        return self._call("GET", "/v3/iodevices?include=channels,connected")
+    def devices(self) -> list[dict[str, Any]]:
+        devices: list[dict[str, Any]] = self._call("GET", "/v3/iodevices?include=channels,connected")
+        return devices
 
-    def rename_channel(self, channel_id, caption):
+    def rename_channel(self, channel_id: int, caption: str) -> dict[str, Any]:
         # safe=true: refuse changes that would delete data (rules, history, etc.)
-        return self._call("PUT", f"/v3/channels/{channel_id}?safe=true", {"caption": caption})
+        channel: dict[str, Any] = self._call("PUT", f"/v3/channels/{channel_id}?safe=true", {"caption": caption})
+        return channel
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     p.add_argument("--url", default=os.environ.get("SUPLA_URL"))
     p.add_argument("--email", default=os.environ.get("SUPLA_EMAIL"))

@@ -1,2 +1,25 @@
 tests/.data/
 .DS_Store
+
+# https://mise.jdx.dev/configuration.html
+# https://mise.jdx.dev/configuration/environments.html
+.mise.*.local.toml
+.mise.local.toml
+mise.*.local.toml
+mise.local.toml
+**/.mise/*.local.toml
+**/mise/*.local.toml
+**/mise/conf.d/*.local.toml
+
+# https://mise.jdx.dev/dev-tools/mise-lock.html#local-lockfiles
+# https://mise.jdx.dev/dev-tools/mise-lock.html#environment-specific-lockfiles
+mise.local.lock
+mise.*.local.lock
+
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[codz]
+*$py.class
+
+.venv/
