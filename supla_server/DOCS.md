@@ -90,30 +90,30 @@ The app installs a firewall rule in its own container when it starts. It doesn't
 - These stay allowed: private addresses (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, link-local, IPv6 `fc00::/7`), which include Home Assistant's own services and your local network; IPv6 link-local multicast, which IPv6 needs to find other devices on the network; the address in `host_address`; and replies to connections that come in, so a phone away from home can still connect through a port forward.
 - Name lookups still go through Home Assistant's DNS. The app can look up `autodiscover.supla.org`, but the connection after the lookup is refused.
 
-The refused connections would fill the app log with errors: supla-server's request for tokens every minute, and SUPLA Cloud's energy price fetch every 5 minutes and ESP update fetch every 2 hours. The app leaves exactly those errors out of its log while the block is on. Other errors still show, including refused connections for features you set up, such as OpenWeather channels.
+The refused connections would fill the app log with errors: supla-server's request for tokens every minute, and SUPLA Cloud's ESP update fetch every 2 hours. The app leaves exactly those errors out of its log while the block is on. Other errors still show, including refused connections for features you set up, such as OpenWeather channels.
 
 To install the rule, the app needs the `NET_ADMIN` privilege, so Home Assistant shows it on the app's page and lowers the app's security rating. The app uses it for nothing else. If the rule can't be installed, the app doesn't start, instead of running without it.
 
 ### What the app contacts with Internet access on
 
-This is from reading the source of SUPLA Cloud 26.05.01 and supla-server 26.05. SUPLA's server answers "403 Forbidden" to servers not registered with it, and this app doesn't register, so nothing below that goes to SUPLA works in this app, even with Internet access on.
+This is from reading the source of SUPLA Cloud 26.11.01 and supla-server 26.11.01. SUPLA's server answers "403 Forbidden" to servers not registered with it, and this app doesn't register, so nothing below that goes to SUPLA works in this app, even with Internet access on.
 
-These happen without you doing anything. All three go to `autodiscover.supla.org`, and send the SUPLA Cloud version, not your account, devices or data.
+These happen without you doing anything. Both go to `autodiscover.supla.org`, and send the SUPLA Cloud version, not your account, devices or data.
 
 | Part | Address | How often | What for |
 |---|---|---|---|
 | supla-server | `https://autodiscover.supla.org/service-tokens` | Every hour (every minute while blocked) | Tokens for push notifications and Google Home. |
-| SUPLA Cloud | `https://autodiscover.supla.org/energy-price-forecast` | Every 5 minutes | Polish energy market prices, for "energy price forecast" channels. |
 | SUPLA Cloud | `https://autodiscover.supla.org/esp-updates` | Every 2 hours | The list of firmware updates for older ESP-based devices. |
 
 These happen only when you use a feature:
 
 | Feature | Address | Sends |
 |---|---|---|
-| OpenWeather channels | `autodiscover.supla.org` | The city, every 5 minutes while such a channel exists. |
+| Adding an OpenWeather channel | `autodiscover.supla.org` | Nothing for the list of cities; then the chosen city, once. The channel doesn't update after that: SUPLA Cloud refreshes weather only on servers registered with SUPLA. |
 | Unlocking a locked device | `autodiscover.supla.org` | The device's name and ID, and the email addresses of its owner and of the person unlocking it. |
 | Signing in to a third-party app that SUPLA Cloud doesn't know yet (OAuth) | `autodiscover.supla.org` | The app's client ID. |
 | State webhooks, set up by a third-party app | The address the app gave | Channel states. |
+| Energy price forecast channels, weather updates, usage statistics | `autodiscover.supla.org` | Nothing: since 26.11, SUPLA Cloud and supla-server do these only on servers registered with SUPLA. The statistics would be the total power of your electricity meters. |
 | Push notifications, Alexa, Google Home | SUPLA's push servers, Amazon, Google | Nothing: these need the server registered with SUPLA, so they never start. |
 | Email | None | Nothing: the app sends no email. |
 

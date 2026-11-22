@@ -22,7 +22,7 @@ Home Assistant downloads a pre-built image from GitHub Container Registry (`ghcr
 | `cloud/Dockerfile`: `php:8.4-apache` + release tarball | Debian `apache2` + `php8.4`, same release tarball (SHA-1 checked) |
 | `cloud/cloud-entrypoint.sh` | `init-supla` (writes `.env.local`) and `init-cloud` (migrations) |
 | `cloud/crontab` | s6 services `cloud-tasks` and `cloud-messenger` |
-| `server/Dockerfile`: supla-core built on Debian 11 | supla-core built on Debian 13 (trixie), in a build stage |
+| `server/Dockerfile`: supla-core built on Debian 13 | supla-core built on Debian 13 (trixie), in a build stage of the same base image |
 | `server/server-entrypoint.sh`, `server/supla.cfg` | `init-supla` writes `/etc/supla-server/supla.cfg` |
 | `supervisord` | s6-overlay from the Home Assistant base image |
 | `.env` | App options, plus secrets generated in `/data/secrets.env` |

@@ -7,12 +7,12 @@ ARG BUILD_FROM=ghcr.io/home-assistant/base-debian:trixie-2026.11.0
 # --- supla-server and supla-scheduler, built on the same Debian release as the runtime ---
 FROM ${BUILD_FROM} AS core-build
 
-ARG SUPLA_CORE_VERSION=v26.05
+ARG SUPLA_CORE_VERSION=v26.11.01
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         g++ gcc git make \
-        libcurl4-openssl-dev libmariadb-dev libpq-dev libpqxx-dev libssl-dev nlohmann-json3-dev \
+        libcjson-dev libcurl4-openssl-dev libmariadb-dev libpq-dev libpqxx-dev libssl-dev nlohmann-json3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN git clone --depth 1 --recurse-submodules --shallow-submodules \
@@ -24,7 +24,7 @@ RUN git clone --depth 1 --recurse-submodules --shallow-submodules \
 # --- runtime ---
 FROM ${BUILD_FROM}
 
-ARG SUPLA_CLOUD_VERSION=26.05.01
+ARG SUPLA_CLOUD_VERSION=26.11.01
 
 ENV S6_CMD_WAIT_FOR_SERVICES_MAXTIME=0 \
     S6_BEHAVIOUR_IF_STAGE2_FAILS=2
@@ -35,7 +35,7 @@ RUN apt-get update \
         php8.4-cli php8.4-curl php8.4-gd php8.4-intl php8.4-mbstring php8.4-mysql php8.4-opcache \
         php8.4-pgsql php8.4-xml php8.4-zip \
         mariadb-server mariadb-client \
-        libcurl4t64 libmariadb3 libpq5 libpqxx-7.10 libssl3t64 \
+        libcjson1 libcurl4t64 libmariadb3 libpq5 libpqxx-7.10 libssl3t64 \
         nftables openssl \
     && rm -rf /var/lib/apt/lists/* \
     && a2dismod -f mpm_event 2>/dev/null; a2enmod mpm_prefork php8.4 headers rewrite expires deflate ssl alias env \

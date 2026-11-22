@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0
+
+- SUPLA Cloud 26.11.01 and supla-server and supla-scheduler 26.11.01 (from 26.05.01 and 26.05). New: smoke, carbon monoxide and gas sensors, battery state of channels, feedback for device configuration that waits for a device to come online, warnings about conflicting channel changes, and security fixes. The first start upgrades the database, so to be able to go back to 0.2.0, back up the app when you update.
+- SUPLA Cloud no longer fetches energy prices every 5 minutes or refreshes OpenWeather channels on servers not registered with SUPLA, such as this one. Neither worked here before either: SUPLA refused them. "Internet access" in the documentation is updated for 26.11.01.
+
 ## 0.2.0
 
 - The app blocks its own Internet access: it can only reach your local network. New option `internet_access` turns the block off. See "Internet access" in the documentation for what the app contacts and what the block costs.

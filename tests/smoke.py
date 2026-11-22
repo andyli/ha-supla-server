@@ -89,15 +89,16 @@ def check_internet_blocked() -> None:
     except OSError as e:
         fail(f"connection to 1.1.1.1:443: {e!r}, expected it to be refused")
 
-    # SUPLA Cloud's HTTP client has no timeout: a request to SUPLA's servers must fail, and quickly.
+    # A request to SUPLA's servers must fail, and quickly. The ESP update fetch is one that SUPLA Cloud
+    # makes on its own on a server not registered with SUPLA (the energy price fetch no longer does).
     start = time.monotonic()
     result = subprocess.run(
-        ["/command/s6-setuidgid", "www-data", "php", "bin/console", "supla:cyclic:energy-price-forecast-fetch"],
+        ["/command/s6-setuidgid", "www-data", "php", "bin/console", "supla:esp:synchronize-updates", "--no-interaction"],
         cwd="/var/www/cloud", check=False, capture_output=True, text=True, timeout=120,
     )
     secs = time.monotonic() - start
     if result.returncode == 0:
-        fail("SUPLA Cloud fetched the energy price forecast although Internet access is blocked")
+        fail("SUPLA Cloud fetched the ESP update list although Internet access is blocked")
     elif secs > 20:
         fail(f"SUPLA Cloud's request to autodiscover.supla.org failed only after {secs:.0f}s")
     else:

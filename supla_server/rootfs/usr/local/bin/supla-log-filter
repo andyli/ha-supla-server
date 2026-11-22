@@ -13,9 +13,10 @@ case "${1:-}" in
     )
     ;;
   cloud-tasks)
-    # Every 5 minutes and every 2 hours: the energy price and ESP update fetches are refused.
+    # Every 2 hours: the ESP update fetch is refused. (Since SUPLA Cloud 26.11 the energy price
+    # fetch only runs on servers registered with SUPLA, so it no longer fails here.)
     # Each failure logs a warning, the error, and Symfony's error block (blank, message, command, blank).
-    fetches='supla:(cyclic:energy-price-forecast-fetch|esp:synchronize-updates)'
+    fetches='supla:esp:synchronize-updates'
     patterns=(
       '\[supla_http_client\] Target service does not respond\. \["address" => "https://autodiscover\.supla\.org/'
       "Error thrown while running command \"${fetches}\"\\. Message: \"Service temporarily unavailable\""

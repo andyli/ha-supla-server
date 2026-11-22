@@ -1,5 +1,5 @@
 name: SUPLA Server
-version: "0.2.0"
+version: "0.3.0"
 slug: supla_server
 description: Self-hosted SUPLA Cloud and SUPLA Server, so SUPLA devices work without cloud.supla.org
 url: https://github.com/andyli/ha-supla-server
