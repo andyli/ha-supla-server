@@ -72,7 +72,7 @@ The password comes from `SUPLA_PASSWORD`, or the tool asks for it. `--insecure` 
 
 ## Development
 
-You need Docker and [mise](https://mise.jdx.dev). mise installs the other tools, [just](https://just.systems), [Dagger](https://dagger.io), [uv](https://docs.astral.sh/uv/) and Python, at the versions in [mise.toml](mise.toml), `mise.lock` and [.python-version](.python-version). The repository is a [uv project](https://mise.jdx.dev/mise-cookbook/python.html#mise-uv): mise creates and activates `.venv`, and `uv run` installs the dev tools from `uv.lock` into it.
+You need Docker and [mise](https://mise.jdx.dev). mise installs the other tools, [just](https://just.systems), [Dagger](https://dagger.io), [uv](https://docs.astral.sh/uv/), [Cosign](https://docs.sigstore.dev/cosign/) and Python, at the versions in [mise.toml](mise.toml), `mise.lock` and [.python-version](.python-version). The repository is a [uv project](https://mise.jdx.dev/mise-cookbook/python.html#mise-uv): mise creates and activates `.venv`, and `uv run` installs the dev tools from `uv.lock` into it.
 
 ```sh
 mise install
@@ -121,11 +121,21 @@ To try it on a Home Assistant box, copy `supla_server/` into the box's `/addons`
 [.github/workflows/ci.yaml](.github/workflows/ci.yaml) runs on every push and pull request:
 
 1. `just lint`
-2. `just test` on an amd64 runner and on an arm64 runner (`ubuntu-24.04-arm`), so each arch's image is built and smoke-tested natively
+2. `just verify-base` and `just test` on an amd64 runner and on an arm64 runner (`ubuntu-24.04-arm`). `just verify-base` checks the Cosign signature of the base image in the Dockerfile, so the build only starts from an image that a home-assistant/docker-base release signed. `just test` then builds and smoke-tests each arch's image natively
 
 On `main`, each test job then pushes the image it has just tested to `image` in [supla_server/config.yaml](supla_server/config.yaml) (`ghcr.io/andyli/supla_server`), tagged `<version>-<arch>`. A final `publish` job joins the two into the multi-arch tag `<version>`, which is what Home Assistant pulls; it picks the image for the device's arch from it. A version is published only once. If its `<version>` tag already exists, CI skips publishing, so a change only reaches users after a `version` bump. Home Assistant offers the update as soon as the new `config.yaml` is on `main`, but the image appears only after CI finishes, about the length of a test run later.
 
 The Dagger functions behind this also work locally: `dagger call image-ref` prints the multi-arch reference, `dagger call arch` the arch your machine builds, and `dagger call publish` pushes the `<version>-<arch>` tag with your `docker login` credentials.
+
+CI signs each image it publishes, the `<version>-<arch>` images and the multi-arch `<version>`, with [Cosign](https://docs.sigstore.dev/cosign/). The signing is keyless: there is no key to keep secret. Instead the signing certificate records that this repository's CI workflow signed the image on `main`, and the signature goes into Sigstore's public transparency log. To check that an image came from this repository's CI:
+
+```sh
+cosign verify ghcr.io/andyli/supla_server:<version> \
+  --certificate-identity https://github.com/andyli/ha-supla-server/.github/workflows/ci.yaml@refs/heads/main \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
+
+Home Assistant installs the app with or without a signature; the signatures are for anyone who wants to check where an image came from. Images published before signing was added (0.2.0 and earlier) have no signature.
 
 The GHCR packages must be public for Home Assistant to pull them. They took the public visibility of this repository when they were first published. Check it in each package's **Package settings** if pulls fail with an authentication error.
 

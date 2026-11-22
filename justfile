@@ -25,6 +25,13 @@ logs:
 test:
     dagger call smoke-test
 
+# Check the Cosign signature of the Dockerfile's base image: it must come from a home-assistant/docker-base release
+verify-base:
+    cosign verify \
+        --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+        --certificate-identity-regexp '^https://github\.com/home-assistant/docker-base/\.github/workflows/.+@refs/tags/' \
+        "$(sed -n 's/^ARG BUILD_FROM=//p' supla_server/Dockerfile)" > /dev/null
+
 # Type-check and lint the Python code (mypy --strict, ruff)
 lint:
     uv run mypy

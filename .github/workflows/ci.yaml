@@ -3,6 +3,7 @@
 # (`image` and `version` in supla_server/config.yaml): each test job pushes `<version>-<arch>`,
 # then the publish job joins them into `<version>` and tags the commit with the git tag `v<version>`.
 # A version is published once and never overwritten: bump `version` in config.yaml to publish a new image.
+# Every published image is signed with Cosign, keyless: the signing certificate names this workflow on main.
 
 name: CI
 
@@ -46,6 +47,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write # for keyless Cosign signing
     outputs:
       # The same values from every arch.
       ref: ${{ steps.publish.outputs.ref }}
@@ -53,6 +55,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+
+      - name: Verify the base image signature
+        run: just verify-base
 
       - name: Smoke test
         run: just test
@@ -85,6 +90,8 @@ jobs:
             # A plain assignment keeps publish's exit status, so the step still fails if it fails.
             pushed=$(dagger --silent call publish)
             echo "Pushed $pushed"
+            # By digest (the output is `<ref>-<arch>@sha256:...`), so the signature covers exactly what was pushed.
+            cosign sign --yes "$pushed"
             echo "publish=true" >> "$GITHUB_OUTPUT"
           fi
 
@@ -95,14 +102,19 @@ jobs:
     permissions:
       contents: write # to push the git tag
       packages: write
+      id-token: write # for keyless Cosign signing
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0 (for cosign)
       - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Join the arch images into the multi-arch image
+      # If signing fails, use "Re-run failed jobs": it joins the same arch images again and signs.
+      # A full re-run would find <version> published and skip it, leaving it unsigned.
+      - name: Join the arch images into the multi-arch image and sign it
         env:
           REF: ${{ needs.test.outputs.ref }}
         run: |
@@ -110,7 +122,9 @@ jobs:
             --annotation "index:org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
             "$REF-amd64" "$REF-aarch64"
           docker buildx imagetools inspect "$REF"
-          echo "::notice::Published $REF"
+          digest=$(docker buildx imagetools inspect "$REF" --format '{{json .Manifest}}' | jq -r .digest)
+          cosign sign --yes "${REF%:*}@$digest"
+          echo "::notice::Published and signed $REF ($digest)"
 
       # After the image, so every tag has an image. Fails if the tag already exists.
       - name: Tag the commit with the image version

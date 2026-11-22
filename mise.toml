@@ -2,6 +2,7 @@
 just = "1.59.0"
 dagger = "0.21.11" # keep in step with engineVersion in dagger.json
 uv = "latest"
+cosign = "3.1.4"
 
 # Python is a uv project: https://mise.jdx.dev/mise-cookbook/python.html#mise-uv
 # The version is in .python-version (keep in step with .dagger/.python-version);

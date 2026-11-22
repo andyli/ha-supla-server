@@ -64,10 +64,15 @@ class SuplaServer:
         """
         config = await source.file("supla_server/config.yaml").contents()
         arch = await self.arch()
+        version = _config_value(config, "version")
         return await (
             self.build(source)
-            .with_label("io.hass.version", _config_value(config, "version"))
+            .with_label("io.hass.version", version)
             .with_label("io.hass.arch", arch)
+            .with_label("io.hass.name", _config_value(config, "name"))
+            .with_label("io.hass.description", _config_value(config, "description"))
+            .with_label("io.hass.url", _config_value(config, "url"))
+            .with_label("org.opencontainers.image.version", version)
             .publish(f"{await self.image_ref(source)}-{arch}")
         )
 
