@@ -1,7 +1,7 @@
 # Lint, build and smoke-test the app on every push and pull request.
 # On main, also publish the tested images to GHCR as one multi-arch image, which Home Assistant pulls
 # (`image` and `version` in supla_server/config.yaml): each test job pushes `<version>-<arch>`,
-# then the publish job joins them into `<version>`.
+# then the publish job joins them into `<version>` and tags the commit with the git tag `v<version>`.
 # A version is published once and never overwritten: bump `version` in config.yaml to publish a new image.
 
 name: CI
@@ -93,7 +93,7 @@ jobs:
     if: needs.test.outputs.publish == 'true'
     runs-on: ubuntu-24.04
     permissions:
-      contents: read
+      contents: write # to push the git tag
       packages: write
     steps:
       - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
@@ -111,3 +111,14 @@ jobs:
             "$REF-amd64" "$REF-aarch64"
           docker buildx imagetools inspect "$REF"
           echo "::notice::Published $REF"
+
+      # After the image, so every tag has an image. Fails if the tag already exists.
+      - name: Tag the commit with the image version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF: ${{ needs.test.outputs.ref }}
+        run: |
+          tag=v${REF##*:}
+          gh api "repos/${{ github.repository }}/git/refs" \
+            -f ref="refs/tags/$tag" -f sha="${{ github.sha }}" > /dev/null
+          echo "::notice::Tagged ${{ github.sha }} as $tag"
