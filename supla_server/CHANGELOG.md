@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2
+
+- Installs and updates download a pre-built image from GitHub Container Registry instead of compiling SUPLA on the device.
+
 ## 0.1.1
 
 - The web UI is on port 4433 by default instead of 443. Installed apps keep their port.

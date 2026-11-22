@@ -1,0 +1,77 @@
+# Lint, build and smoke-test the app on every push and pull request.
+# On main, also publish the tested image for each arch to GHCR, where Home Assistant pulls it from
+# (`image` in supla_server/config.yaml). A version is published once and never overwritten:
+# bump `version` in config.yaml to publish a new image.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  DAGGER_NO_NAG: "1"
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+      - run: just lint
+
+  test:
+    name: test (${{ matrix.arch }})
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Native runners: compiling supla-core under QEMU would take far longer.
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
+
+      - name: Smoke test
+        run: just test
+
+      # Publishing reuses the image the smoke test built, from the same Dagger engine.
+      - name: Log in to GHCR
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish image
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          ref=$(dagger --silent call image-ref)
+          case "$ref" in
+            *"${{ matrix.arch }}-"*) ;;
+            *) echo "::error::$ref is not for ${{ matrix.arch }}"; exit 1 ;;
+          esac
+          if docker manifest inspect "$ref" > /dev/null 2>&1; then
+            echo "::notice::$ref is already published; bump version in supla_server/config.yaml to publish a new image."
+          else
+            dagger --silent call publish
+            echo "::notice::Published $ref"
+          fi

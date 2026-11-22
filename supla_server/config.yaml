@@ -1,8 +1,10 @@
 name: SUPLA Server
-version: "0.1.1"
+version: "0.1.2"
 slug: supla_server
 description: Self-hosted SUPLA Cloud and SUPLA Server, so SUPLA devices work without cloud.supla.org
 url: https://github.com/andyli/ha-supla-server
+# Pre-built by .github/workflows/ci.yaml. Remove this line to build on the device instead.
+image: "ghcr.io/andyli/{arch}-supla_server"
 arch:
   - aarch64
   - amd64

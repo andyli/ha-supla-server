@@ -1,5 +1,6 @@
-"""Build and test the SUPLA Server app for Home Assistant."""
+"""Build, test and publish the SUPLA Server app for Home Assistant."""
 
+import re
 from datetime import UTC, datetime
 from typing import Annotated
 
@@ -16,6 +17,21 @@ Source = Annotated[
     Doc("Repository root"),
 ]
 
+# Docker platform of the Dagger engine -> Home Assistant arch name.
+HA_ARCH = {
+    "linux/amd64": "amd64",
+    "linux/arm64": "aarch64",
+    "linux/arm64/v8": "aarch64",
+}
+
+
+def _config_value(config: str, key: str) -> str:
+    """A top-level scalar from supla_server/config.yaml."""
+    match = re.search(rf'^{key}:\s*"?([^"\n]+?)"?\s*$', config, re.MULTILINE)
+    if not match:
+        raise ValueError(f"no top-level {key!r} in supla_server/config.yaml")
+    return match.group(1)
+
 
 @object_type
 class SuplaServer:
@@ -23,6 +39,35 @@ class SuplaServer:
     def build(self, source: Source) -> dagger.Container:
         """Build the app image from supla_server/Dockerfile."""
         return source.directory("supla_server").docker_build()
+
+    @function
+    async def arch(self) -> str:
+        """Home Assistant arch of the images this engine builds (amd64 or aarch64)."""
+        platform = str(await dag.default_platform())
+        if platform not in HA_ARCH:
+            raise ValueError(f"no Home Assistant arch for platform {platform}")
+        return HA_ARCH[platform]
+
+    @function
+    async def image_ref(self, source: Source) -> str:
+        """Image reference Home Assistant pulls for this engine's arch: `image` and `version` in config.yaml."""
+        config = await source.file("supla_server/config.yaml").contents()
+        image = _config_value(config, "image").replace("{arch}", await self.arch())
+        return f"{image}:{_config_value(config, 'version')}"
+
+    @function
+    async def publish(self, source: Source) -> str:
+        """Build the image for this engine's arch and push it to image-ref.
+
+        Uses the registry login of the host (`docker login`). Returns the pushed reference with its digest.
+        """
+        config = await source.file("supla_server/config.yaml").contents()
+        return await (
+            self.build(source)
+            .with_label("io.hass.version", _config_value(config, "version"))
+            .with_label("io.hass.arch", await self.arch())
+            .publish(await self.image_ref(source))
+        )
 
     @function
     def mqtt(self) -> dagger.Service:
