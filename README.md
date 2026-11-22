@@ -10,7 +10,7 @@ User documentation: [supla_server/DOCS.md](supla_server/DOCS.md).
 
 In Home Assistant: **Settings → Apps → Install app → ⋮ → Repositories**, add `https://github.com/andyli/ha-supla-server`, then install **SUPLA Server**.
 
-Home Assistant downloads a pre-built image for `amd64` or `aarch64` from GitHub Container Registry (`ghcr.io/andyli/{arch}-supla_server`), so nothing is compiled on the device.
+Home Assistant downloads a pre-built image from GitHub Container Registry (`ghcr.io/andyli/supla_server`, multi-arch for `amd64` and `aarch64`), so nothing is compiled on the device.
 
 ## How it relates to supla-docker
 
@@ -50,7 +50,7 @@ tests/
   smoke.py                    Smoke test, run inside the app container
 tools/
   supla_cloud.py              List devices and rename channels through the SUPLA Cloud API
-.github/workflows/ci.yaml     CI: lint, smoke test on amd64 and aarch64, publish images to GHCR
+.github/workflows/ci.yaml     CI: lint, smoke test on amd64 and aarch64, publish the multi-arch image to GHCR
 .dagger/                      Dagger module (Python): builds the image, runs the tests, publishes
 dagger.json                   Dagger module metadata
 justfile                      Build, run and test commands
@@ -123,9 +123,9 @@ To try it on a Home Assistant box, copy `supla_server/` into the box's `/addons`
 1. `just lint`
 2. `just test` on an amd64 runner and on an arm64 runner (`ubuntu-24.04-arm`), so each arch's image is built and smoke-tested natively
 
-On `main`, each test job then pushes the image it has just tested to `image` in [supla_server/config.yaml](supla_server/config.yaml) (`ghcr.io/andyli/{arch}-supla_server`), tagged with `version`. A version is published only once. If its tag already exists, the job skips publishing, so a change only reaches users after a `version` bump. Home Assistant offers the update as soon as the new `config.yaml` is on `main`, but the image appears only after CI finishes, about the length of a test run later.
+On `main`, each test job then pushes the image it has just tested to `image` in [supla_server/config.yaml](supla_server/config.yaml) (`ghcr.io/andyli/supla_server`), tagged `<version>-<arch>`. A final `publish` job joins the two into the multi-arch tag `<version>`, which is what Home Assistant pulls; it picks the image for the device's arch from it. A version is published only once. If its `<version>` tag already exists, CI skips publishing, so a change only reaches users after a `version` bump. Home Assistant offers the update as soon as the new `config.yaml` is on `main`, but the image appears only after CI finishes, about the length of a test run later.
 
-The Dagger functions behind this also work locally: `dagger call image-ref` prints the reference for your machine's arch, and `dagger call publish` pushes with your `docker login` credentials.
+The Dagger functions behind this also work locally: `dagger call image-ref` prints the multi-arch reference, `dagger call arch` the arch your machine builds, and `dagger call publish` pushes the `<version>-<arch>` tag with your `docker login` credentials.
 
 The GHCR packages must be public for Home Assistant to pull them. They took the public visibility of this repository when they were first published. Check it in each package's **Package settings** if pulls fail with an authentication error.
 

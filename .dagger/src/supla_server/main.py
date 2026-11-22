@@ -50,23 +50,24 @@ class SuplaServer:
 
     @function
     async def image_ref(self, source: Source) -> str:
-        """Image reference Home Assistant pulls for this engine's arch: `image` and `version` in config.yaml."""
+        """Multi-arch image Home Assistant pulls: `image` and `version` in config.yaml."""
         config = await source.file("supla_server/config.yaml").contents()
-        image = _config_value(config, "image").replace("{arch}", await self.arch())
-        return f"{image}:{_config_value(config, 'version')}"
+        return f"{_config_value(config, 'image')}:{_config_value(config, 'version')}"
 
     @function
     async def publish(self, source: Source) -> str:
-        """Build the image for this engine's arch and push it to image-ref.
+        """Build the image for this engine's arch and push it to image-ref with an `-<arch>` tag suffix.
 
+        CI then joins the arch tags into the multi-arch image-ref.
         Uses the registry login of the host (`docker login`). Returns the pushed reference with its digest.
         """
         config = await source.file("supla_server/config.yaml").contents()
+        arch = await self.arch()
         return await (
             self.build(source)
             .with_label("io.hass.version", _config_value(config, "version"))
-            .with_label("io.hass.arch", await self.arch())
-            .publish(await self.image_ref(source))
+            .with_label("io.hass.arch", arch)
+            .publish(f"{await self.image_ref(source)}-{arch}")
         )
 
     @function

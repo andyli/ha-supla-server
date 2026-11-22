@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- The image is now one multi-arch image, `ghcr.io/andyli/supla_server`, for both amd64 and aarch64. Nothing else changed.
+
 ## 0.1.2
 
 - Installs and updates download a pre-built image from GitHub Container Registry instead of compiling SUPLA on the device.

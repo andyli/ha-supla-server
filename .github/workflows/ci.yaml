@@ -1,7 +1,8 @@
 # Lint, build and smoke-test the app on every push and pull request.
-# On main, also publish the tested image for each arch to GHCR, where Home Assistant pulls it from
-# (`image` in supla_server/config.yaml). A version is published once and never overwritten:
-# bump `version` in config.yaml to publish a new image.
+# On main, also publish the tested images to GHCR as one multi-arch image, which Home Assistant pulls
+# (`image` and `version` in supla_server/config.yaml): each test job pushes `<version>-<arch>`,
+# then the publish job joins them into `<version>`.
+# A version is published once and never overwritten: bump `version` in config.yaml to publish a new image.
 
 name: CI
 
@@ -45,6 +46,10 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      # The same values from every arch.
+      ref: ${{ steps.publish.outputs.ref }}
+      publish: ${{ steps.publish.outputs.publish }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
@@ -61,20 +66,48 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish image
+      - name: Push ${{ matrix.arch }} image
+        id: publish
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         run: |
+          arch=$(dagger --silent call arch)
+          if [ "$arch" != "${{ matrix.arch }}" ]; then
+            echo "::error::This runner builds $arch images, not ${{ matrix.arch }}"
+            exit 1
+          fi
           ref=$(dagger --silent call image-ref)
-          case "$ref" in
-            *"${{ matrix.arch }}-"*) ;;
-            *) echo "::error::$ref is not for ${{ matrix.arch }}"; exit 1 ;;
-          esac
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
           if docker manifest inspect "$ref" > /dev/null 2>&1; then
             echo "::notice::$ref is already published; bump version in supla_server/config.yaml to publish a new image."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
           else
             # Captured because the output has no trailing newline, and a workflow command must start a line.
             # A plain assignment keeps publish's exit status, so the step still fails if it fails.
             pushed=$(dagger --silent call publish)
             echo "Pushed $pushed"
-            echo "::notice::Published $ref"
+            echo "publish=true" >> "$GITHUB_OUTPUT"
           fi
+
+  publish:
+    needs: test
+    if: needs.test.outputs.publish == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Join the arch images into the multi-arch image
+        env:
+          REF: ${{ needs.test.outputs.ref }}
+        run: |
+          docker buildx imagetools create --tag "$REF" \
+            --annotation "index:org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
+            "$REF-amd64" "$REF-aarch64"
+          docker buildx imagetools inspect "$REF"
+          echo "::notice::Published $REF"
