@@ -62,6 +62,7 @@ If you used to bridge your Mosquitto broker to SUPLA's MQTT broker (`mqttXXX.sup
 | `user_email`, `user_password` | Creates this account on start if it doesn't exist. Changing the password here later has no effect. |
 | `accounts_registration` | Lets anyone who can reach the web UI sign up. Off by default. |
 | `mqtt` | Publishes devices to the Mosquitto broker app. On by default. |
+| `internet_access` | Lets the app reach the Internet. Off by default: see [Internet access](#internet-access). |
 | `ssl_certfile`, `ssl_keyfile` | Certificate and key in `/ssl` for the web UI, e.g. `fullchain.pem` and `privkey.pem`. Leave empty for a self-signed certificate. |
 
 ## Network
@@ -77,21 +78,33 @@ Don't change 2016 or 2015: devices and the SUPLA mobile apps always connect to t
 
 ## Internet access
 
-The app works without Internet access. Devices, the SUPLA mobile apps, the web UI and MQTT only need your local network.
+The app blocks its own Internet access: it can only reach your local network. Devices, the SUPLA mobile apps, the web UI and MQTT only need your local network, so they work as usual. To let the app reach the Internet, turn on `internet_access`.
 
-It does contact SUPLA's servers by itself, even if you never use an online feature. This section lists what it contacts, from reading the source of SUPLA Cloud 26.05.01 and supla-server 26.05, so you can decide whether to block it.
+### How the block works
 
-### What it contacts without you doing anything
+The app installs a firewall rule in its own container when it starts. It doesn't affect Home Assistant or other apps.
 
-All three go to `autodiscover.supla.org`. They send the SUPLA Cloud version, not your account, devices or data.
+- New connections to public addresses are refused at once.
+- These stay allowed: private addresses (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, link-local, IPv6 `fc00::/7`), which include Home Assistant's own services and your local network; the address in `host_address`; and replies to connections that come in, so a phone away from home can still connect through a port forward.
+- Name lookups still go through Home Assistant's DNS. The app can look up `autodiscover.supla.org`, but the connection after the lookup is refused.
+
+The app log shows the refused connections as errors, which you can ignore: supla-server logs `curl_easy_perform() failed: Could not connect to server. https://autodiscover.supla.org/service-tokens` every minute, and SUPLA Cloud logs `Service temporarily unavailable` for `energy-price-forecast` every 5 minutes and for `esp-updates` every 2 hours.
+
+To install the rule, the app needs the `NET_ADMIN` privilege, so Home Assistant shows it on the app's page and lowers the app's security rating. The app uses it for nothing else. If the rule can't be installed, the app doesn't start, instead of running without it.
+
+### What the app contacts with Internet access on
+
+This is from reading the source of SUPLA Cloud 26.05.01 and supla-server 26.05. SUPLA's server answers "403 Forbidden" to servers not registered with it, and this app doesn't register, so nothing below that goes to SUPLA works in this app, even with Internet access on.
+
+These happen without you doing anything. All three go to `autodiscover.supla.org`, and send the SUPLA Cloud version, not your account, devices or data.
 
 | Part | Address | How often | What for |
 |---|---|---|---|
-| supla-server | `https://autodiscover.supla.org/service-tokens` | Every minute from start (every hour once SUPLA refuses) | Tokens for push notifications and Google Home. SUPLA gives none to servers not registered with it, and this app doesn't register. |
+| supla-server | `https://autodiscover.supla.org/service-tokens` | Every hour (every minute while blocked) | Tokens for push notifications and Google Home. |
 | SUPLA Cloud | `https://autodiscover.supla.org/energy-price-forecast` | Every 5 minutes | Polish energy market prices, for "energy price forecast" channels. |
 | SUPLA Cloud | `https://autodiscover.supla.org/esp-updates` | Every 2 hours | The list of firmware updates for older ESP-based devices. |
 
-### What it contacts only when you use a feature
+These happen only when you use a feature:
 
 | Feature | Address | Sends |
 |---|---|---|
@@ -102,18 +115,13 @@ All three go to `autodiscover.supla.org`. They send the SUPLA Cloud version, not
 | Push notifications, Alexa, Google Home | SUPLA's push servers, Amazon, Google | Nothing: these need the server registered with SUPLA, so they never start. |
 | Email | None | Nothing: the app sends no email. |
 
-### What you lose by blocking it
+### What the block costs
 
-Energy price forecast channels, OpenWeather channels, device unlocking, and the firmware update list for older ESP devices. Push notifications, Alexa and Google Home don't work in this app either way.
+Only state webhooks to addresses on the Internet. The other features above don't work in this app either way.
 
-### How to block it
+### Your devices and phones
 
-There is no option in the app for this yet. Two things to know if you block it outside the app, for example on your router or DNS server:
-
-- **Block it by name, not by Home Assistant's address.** The app's traffic leaves from Home Assistant's own IP address, so a rule for that address blocks Home Assistant too. Blocking `autodiscover.supla.org` in a DNS blocker such as Pi-hole or AdGuard Home stops all the traffic listed above, except webhooks you set up.
-- **Make blocked connections fail at once.** If you block with a firewall, reject the connection instead of dropping it. SUPLA Cloud sets no time limit on its requests, so with a dropped connection each one waits about 5 minutes. That holds up the app's other periodic jobs, such as running schedules. A DNS blocker fails at once.
-
-Blocking the app doesn't stop your devices or phones from reaching the Internet. The SUPLA mobile app contacts `autodiscover.supla.org` when **Auto** is on (see [Connecting the SUPLA mobile app](#connecting-the-supla-mobile-app)). Devices download firmware from `updates.supla.org` when you update them.
+The block covers only the app. The SUPLA mobile app contacts `autodiscover.supla.org` when **Auto** is on (see [Connecting the SUPLA mobile app](#connecting-the-supla-mobile-app)). Devices download firmware from `updates.supla.org` when you update them.
 
 ## Backups
 

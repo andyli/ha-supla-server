@@ -75,6 +75,35 @@ def connect(port: int) -> None:
     socket.create_connection(("127.0.0.1", port), timeout=2).close()
 
 
+def check_internet_blocked() -> None:
+    """With internet_access off, connections to the Internet must be refused at once, not hang."""
+    start = time.monotonic()
+    try:
+        socket.create_connection(("1.1.1.1", 443), timeout=10).close()
+        fail("connected to 1.1.1.1:443 although Internet access is blocked")
+    except ConnectionRefusedError:
+        if (secs := time.monotonic() - start) < 2:
+            ok("connection to 1.1.1.1:443 refused")
+        else:
+            fail(f"connection to 1.1.1.1:443 refused only after {secs:.0f}s")
+    except OSError as e:
+        fail(f"connection to 1.1.1.1:443: {e!r}, expected it to be refused")
+
+    # SUPLA Cloud's HTTP client has no timeout: a request to SUPLA's servers must fail, and quickly.
+    start = time.monotonic()
+    result = subprocess.run(
+        ["/command/s6-setuidgid", "www-data", "php", "bin/console", "supla:cyclic:energy-price-forecast-fetch"],
+        cwd="/var/www/cloud", check=False, capture_output=True, text=True, timeout=120,
+    )
+    secs = time.monotonic() - start
+    if result.returncode == 0:
+        fail("SUPLA Cloud fetched the energy price forecast although Internet access is blocked")
+    elif secs > 20:
+        fail(f"SUPLA Cloud's request to autodiscover.supla.org failed only after {secs:.0f}s")
+    else:
+        ok(f"SUPLA Cloud's request to autodiscover.supla.org failed in {secs:.1f}s")
+
+
 def service_states() -> dict[str, tuple[bool, str | None]]:
     """{service: (up, pid)} for each long-running service, from s6-svstat."""
     states: dict[str, tuple[bool, str | None]] = {}
@@ -110,6 +139,9 @@ def main() -> int:
             fail(f"supla-server on {port}: {err}")
         else:
             ok(f"supla-server listens on {port}")
+
+    if not options.get("internet_access", False):
+        check_internet_blocked()
 
     # A service that crashed and was restarted by s6 has a new pid.
     before = service_states()

@@ -30,6 +30,41 @@ fi
 bashio::log.info "SUPLA Cloud address: https://${host_address}"
 registration=$(bashio::config 'accounts_registration')
 
+# --- Internet access ---
+# Unless 'internet_access' is on, reject new outgoing connections to public addresses, in this
+# container only. Rejected rather than dropped, so they fail at once: SUPLA Cloud's HTTP client has
+# no timeout and would otherwise wait minutes. Still allowed: loopback; private and link-local
+# addresses (Supervisor, DNS, Mosquitto, the LAN); host_address, which SUPLA Cloud connects to
+# for its server status; and replies to incoming connections, such as phones on mobile data.
+nft delete table inet supla_egress 2>/dev/null || true
+if bashio::config.true 'internet_access'; then
+  bashio::log.info "Internet access: allowed"
+else
+  host_ips=$(getent ahosts "${host_only}" | awk '{print $1}' | sort -u || true)
+  host_v4=$(grep -v : <<<"${host_ips}" | paste -sd, - || true)
+  host_v6=$(grep -F : <<<"${host_ips}" | paste -sd, - || true)
+  allow_host=""
+  if [[ -n "${host_v4}" ]]; then allow_host+="ip daddr { ${host_v4} } accept"$'\n'; fi
+  if [[ -n "${host_v6}" ]]; then allow_host+="ip6 daddr { ${host_v6} } accept"$'\n'; fi
+  if ! nft -f - <<EOF; then
+table inet supla_egress {
+  chain output {
+    type filter hook output priority filter; policy accept;
+    ct state established,related accept
+    oifname "lo" accept
+    ip daddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16 } accept
+    ip6 daddr { fc00::/7, fe80::/10 } accept
+    ${allow_host}
+    meta l4proto tcp reject with tcp reset
+    reject with icmpx admin-prohibited
+  }
+}
+EOF
+    bashio::exit.nok "Could not block Internet access (see the nft error above). Turn on 'internet_access' to start without the block."
+  fi
+  bashio::log.info "Internet access: blocked"
+fi
+
 # --- generated secrets, kept in /data so they survive restarts and are backed up ---
 if [[ ! -f "${DATA}/secrets.env" ]]; then
   bashio::log.info "Generating secrets"

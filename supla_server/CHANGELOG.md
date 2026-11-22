@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0
+
+- The app blocks its own Internet access: it can only reach your local network. New option `internet_access` turns the block off. See "Internet access" in the documentation for what the app contacts and what the block costs.
+- The app now needs the `NET_ADMIN` privilege, to install the firewall rule for the block.
+
 ## 0.1.3
 
 - The image is now one multi-arch image, `ghcr.io/andyli/supla_server`, for both amd64 and aarch64. Nothing else changed.

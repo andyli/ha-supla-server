@@ -18,6 +18,11 @@ configuration:
     description: >-
       Publishes devices to the Mosquitto broker app, with Home Assistant MQTT discovery.
       Turns on MQTT for every SUPLA Cloud account.
+  internet_access:
+    name: Allow Internet access
+    description: >-
+      Off: the app can only reach your local network, which is all it needs.
+      Turn on only for state webhooks to addresses on the Internet.
   ssl_certfile:
     name: Certificate file
     description: Certificate in /ssl for the web UI. Leave empty for a self-signed one.

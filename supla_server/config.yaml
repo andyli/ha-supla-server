@@ -1,5 +1,5 @@
 name: SUPLA Server
-version: "0.1.3"
+version: "0.2.0"
 slug: supla_server
 description: Self-hosted SUPLA Cloud and SUPLA Server, so SUPLA devices work without cloud.supla.org
 url: https://github.com/andyli/ha-supla-server
@@ -14,6 +14,9 @@ init: false
 timeout: 120
 services:
   - mqtt:want
+# Lets init-supla install the firewall that blocks the app's Internet access ('internet_access').
+privileged:
+  - NET_ADMIN
 map:
   - type: ssl
 ports:
@@ -31,11 +34,13 @@ options:
   host_address: ""
   accounts_registration: false
   mqtt: true
+  internet_access: false
 schema:
   host_address: str
   user_email: "email?"
   user_password: "password?"
   accounts_registration: bool
   mqtt: bool
+  internet_access: bool
   ssl_certfile: "str?"
   ssl_keyfile: "str?"

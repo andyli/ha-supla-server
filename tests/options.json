@@ -2,6 +2,7 @@
   "host_address": "localhost",
   "accounts_registration": false,
   "mqtt": true,
+  "internet_access": false,
   "user_email": "test@example.com",
   "user_password": "TestPass123!"
 }

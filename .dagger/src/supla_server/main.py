@@ -146,6 +146,11 @@ class SuplaServer:
             .with_file("/smoke.py", source.file("tests/smoke.py"))
             .with_env_variable("SMOKE_RUN_AT", datetime.now(UTC).isoformat())
             # s6-overlay must be pid 1, so skip Dagger's own init process.
-            .with_exec(["/init", "python3", "-u", "/smoke.py"], no_init=True)
+            # Root capabilities include NET_ADMIN, which the app gets from `privileged` in config.yaml.
+            .with_exec(
+                ["/init", "python3", "-u", "/smoke.py"],
+                no_init=True,
+                insecure_root_capabilities=True,
+            )
             .stdout()
         )

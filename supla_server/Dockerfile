@@ -36,7 +36,7 @@ RUN apt-get update \
         php8.4-pgsql php8.4-xml php8.4-zip \
         mariadb-server mariadb-client \
         libcurl4t64 libmariadb3 libpq5 libpqxx-7.10 libssl3t64 \
-        openssl \
+        nftables openssl \
     && rm -rf /var/lib/apt/lists/* \
     && a2dismod -f mpm_event 2>/dev/null; a2enmod mpm_prefork php8.4 headers rewrite expires deflate ssl alias env \
     && a2dissite 000-default \

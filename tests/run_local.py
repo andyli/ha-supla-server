@@ -65,7 +65,7 @@ def up() -> None:
     else:
         sys.exit("the stub Supervisor did not start; see: docker logs supla-supervisor")
     docker(
-        "run", "-d", "--name", "supla-app", "--network", NET, "-e", "SUPERVISOR_TOKEN=test",
+        "run", "-d", "--name", "supla-app", "--network", NET, "--cap-add", "NET_ADMIN", "-e", "SUPERVISOR_TOKEN=test",
         "-v", f"{DATA}:/data", "-p", "8443:443", "-p", "2016:2016", "-p", "2015:2015", IMAGE,
         quiet=True,
     )
