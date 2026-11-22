@@ -1,2 +1,4 @@
 #!/command/with-contenv bash
+# While Internet access is blocked, leave out the errors the block causes (see supla-log-filter).
+if [[ -f /run/supla/internet_blocked ]]; then exec > >(exec supla-log-filter supla-server) 2>&1; fi
 exec /usr/local/bin/supla-server

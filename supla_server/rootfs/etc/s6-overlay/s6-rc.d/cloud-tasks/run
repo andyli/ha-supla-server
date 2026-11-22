@@ -1,5 +1,7 @@
 #!/command/with-contenv bash
 # Replaces upstream's per-minute cron job.
+# While Internet access is blocked, leave out the errors the block causes (see supla-log-filter).
+if [[ -f /run/supla/internet_blocked ]]; then exec > >(exec supla-log-filter cloud-tasks) 2>&1; fi
 cd /var/www/cloud || exit 1
 while true; do
   s6-setuidgid www-data php bin/console supla:dispatch-cyclic-tasks --no-interaction

@@ -1,0 +1,36 @@
+#!/bin/bash
+# Usage: <service output> | supla-log-filter <service>
+# Copies stdin to stdout without the errors that <service> logs because the app's Internet access
+# is blocked (see init-supla). The run scripts pipe through it only while the block is on.
+# Each pattern matches one exact line, so other errors still show.
+set -euo pipefail
+
+case "${1:-}" in
+  supla-server)
+    patterns=(
+      # Every minute: the token request to SUPLA's push and Google Home gateway is refused.
+      '^ERR\[[^]]*\] curl_easy_perform\(\) failed: Could not connect to server\. https://autodiscover\.supla\.org/service-tokens$'
+    )
+    ;;
+  cloud-tasks)
+    # Every 5 minutes and every 2 hours: the energy price and ESP update fetches are refused.
+    # Each failure logs a warning, the error, and Symfony's error block (blank, message, command, blank).
+    fetches='supla:(cyclic:energy-price-forecast-fetch|esp:synchronize-updates)'
+    patterns=(
+      '\[supla_http_client\] Target service does not respond\. \["address" => "https://autodiscover\.supla\.org/'
+      "Error thrown while running command \"${fetches}\"\\. Message: \"Service temporarily unavailable\""
+      '^\[[^]]*\] In SuplaBrokerHttpClient\.php line [0-9]+: +Service temporarily unavailable +$'
+      "^\\[[^]]*\\] ${fetches}\$"
+      '^\[[^]]*\] $'
+    )
+    ;;
+  *)
+    echo "usage: supla-log-filter supla-server|cloud-tasks" >&2
+    exit 2
+    ;;
+esac
+
+args=()
+for p in "${patterns[@]}"; do args+=(-e "${p}"); done
+# grep exits 1 when it drops every line; that isn't an error here.
+grep --line-buffered -v -E "${args[@]}" || [[ $? == 1 ]]

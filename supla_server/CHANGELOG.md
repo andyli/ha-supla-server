@@ -4,6 +4,7 @@
 
 - The app blocks its own Internet access: it can only reach your local network. New option `internet_access` turns the block off. See "Internet access" in the documentation for what the app contacts and what the block costs.
 - The app now needs the `NET_ADMIN` privilege, to install the firewall rule for the block.
+- While the block is on, the app leaves the errors it causes out of its log: the refused requests that supla-server and SUPLA Cloud make to SUPLA's servers every few minutes.
 
 ## 0.1.3
 

@@ -41,7 +41,8 @@ def up() -> None:
     docker("build", "-t", IMAGE, str(ROOT / "supla_server"))
     DATA.mkdir(parents=True, exist_ok=True)
     shutil.copy(ROOT / "tests" / "options.json", DATA / "options.json")
-    docker("network", "create", NET, quiet=True)
+    # Dual-stack, like Home Assistant's own network, so IPv6 problems show up here too.
+    docker("network", "create", "--ipv6", "--subnet", "fd0c:ac1e:2200::/64", NET, quiet=True)
     docker(
         "run", "-d", "--name", "supla-mqtt", "--network", NET, MOSQUITTO_IMAGE,
         "sh", "-c",

@@ -34,9 +34,11 @@ registration=$(bashio::config 'accounts_registration')
 # Unless 'internet_access' is on, reject new outgoing connections to public addresses, in this
 # container only. Rejected rather than dropped, so they fail at once: SUPLA Cloud's HTTP client has
 # no timeout and would otherwise wait minutes. Still allowed: loopback; private and link-local
-# addresses (Supervisor, DNS, Mosquitto, the LAN); host_address, which SUPLA Cloud connects to
+# addresses (Supervisor, DNS, Mosquitto, the LAN) and IPv6 link-local multicast (neighbour
+# discovery); host_address, which SUPLA Cloud connects to
 # for its server status; and replies to incoming connections, such as phones on mobile data.
 nft delete table inet supla_egress 2>/dev/null || true
+rm -f /run/supla/internet_blocked
 if bashio::config.true 'internet_access'; then
   bashio::log.info "Internet access: allowed"
 else
@@ -54,6 +56,9 @@ table inet supla_egress {
     oifname "lo" accept
     ip daddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16 } accept
     ip6 daddr { fc00::/7, fe80::/10 } accept
+    # IPv6 link-local multicast. Neighbour discovery uses it, so without it no IPv6 connection
+    # starts, not even to Mosquitto. ARP, its IPv4 counterpart, doesn't pass through this table.
+    ip6 daddr ff02::/16 accept
     ${allow_host}
     meta l4proto tcp reject with tcp reset
     reject with icmpx admin-prohibited
@@ -62,6 +67,8 @@ table inet supla_egress {
 EOF
     bashio::exit.nok "Could not block Internet access (see the nft error above). Turn on 'internet_access' to start without the block."
   fi
+  # The supla-server and cloud-tasks services filter the errors the block causes from their logs.
+  touch /run/supla/internet_blocked
   bashio::log.info "Internet access: blocked"
 fi
 

@@ -87,10 +87,10 @@ The app blocks its own Internet access: it can only reach your local network. De
 The app installs a firewall rule in its own container when it starts. It doesn't affect Home Assistant or other apps.
 
 - New connections to public addresses are refused at once.
-- These stay allowed: private addresses (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, link-local, IPv6 `fc00::/7`), which include Home Assistant's own services and your local network; the address in `host_address`; and replies to connections that come in, so a phone away from home can still connect through a port forward.
+- These stay allowed: private addresses (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, link-local, IPv6 `fc00::/7`), which include Home Assistant's own services and your local network; IPv6 link-local multicast, which IPv6 needs to find other devices on the network; the address in `host_address`; and replies to connections that come in, so a phone away from home can still connect through a port forward.
 - Name lookups still go through Home Assistant's DNS. The app can look up `autodiscover.supla.org`, but the connection after the lookup is refused.
 
-The app log shows the refused connections as errors, which you can ignore: supla-server logs `curl_easy_perform() failed: Could not connect to server. https://autodiscover.supla.org/service-tokens` every minute, and SUPLA Cloud logs `Service temporarily unavailable` for `energy-price-forecast` every 5 minutes and for `esp-updates` every 2 hours.
+The refused connections would fill the app log with errors: supla-server's request for tokens every minute, and SUPLA Cloud's energy price fetch every 5 minutes and ESP update fetch every 2 hours. The app leaves exactly those errors out of its log while the block is on. Other errors still show, including refused connections for features you set up, such as OpenWeather channels.
 
 To install the rule, the app needs the `NET_ADMIN` privilege, so Home Assistant shows it on the app's page and lowers the app's security rating. The app uses it for nothing else. If the rule can't be installed, the app doesn't start, instead of running without it.
 

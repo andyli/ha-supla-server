@@ -1,5 +1,6 @@
 """Build, test and publish the SUPLA Server app for Home Assistant."""
 
+import json
 import re
 from datetime import UTC, datetime
 from typing import Annotated
@@ -131,7 +132,7 @@ class SuplaServer:
         Runs tests/smoke.py as the container's main command under s6-overlay.
         Fails if the app's init fails or any check fails.
         """
-        return await (
+        output = await (
             self.app(source, options)
             # The app image has no Python; add Debian's, in the test container only.
             .with_exec(
@@ -154,3 +155,10 @@ class SuplaServer:
             )
             .stdout()
         )
+        # supla-server asks SUPLA for tokens right at start. With the block on, supla-log-filter
+        # must have left the refused request out of the app's log, which is this output.
+        app_options = json.loads(await (options or source.file("tests/options.json")).contents())
+        blocked_error = "curl_easy_perform() failed: Could not connect to server. https://autodiscover.supla.org/"
+        if not app_options.get("internet_access", False) and blocked_error in output:
+            raise RuntimeError(f"the app's log has the error the Internet block causes:\n{output}")
+        return output

@@ -103,6 +103,43 @@ def check_internet_blocked() -> None:
     else:
         ok(f"SUPLA Cloud's request to autodiscover.supla.org failed in {secs:.1f}s")
 
+    # The errors the block causes are left out of the logs by supla-log-filter.
+    for service in ("supla-server", "cloud-tasks"):
+        if any(cmd[-2:] == ["supla-log-filter", service] for cmd in process_cmdlines()):
+            ok(f"{service} logs through supla-log-filter")
+        else:
+            fail(f"{service} doesn't log through supla-log-filter")
+    raw = subprocess.run(
+        ["/command/s6-setuidgid", "www-data", "php", "bin/console", "supla:dispatch-cyclic-tasks", "--no-interaction", "--all"],
+        cwd="/var/www/cloud", check=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=300,
+    ).stdout
+    filtered = subprocess.run(
+        ["supla-log-filter", "cloud-tasks"], input=raw, check=False, capture_output=True, text=True, timeout=30,
+    ).stdout
+    left = [line for line in filtered.splitlines() if "autodiscover.supla.org" in line or "temporarily unavailable" in line]
+    if "Error thrown" not in raw:
+        fail("SUPLA Cloud's cyclic tasks logged no errors to filter; the filter check proves nothing")
+    elif left:
+        fail("supla-log-filter left these cyclic-task lines:\n  " + "\n  ".join(left))
+    elif "Disabled 0 schedules" not in filtered:
+        fail("supla-log-filter dropped cyclic-task output it should keep")
+    else:
+        ok("supla-log-filter leaves out the cyclic tasks' blocked-request errors, and only those")
+
+
+def process_cmdlines() -> list[list[str]]:
+    """The command line of every process, with the interpreter's script path reduced to its name."""
+    cmdlines = []
+    for entry in os.listdir("/proc"):
+        if entry.isdigit():
+            try:
+                with open(f"/proc/{entry}/cmdline", "rb") as f:
+                    args = [a.decode(errors="replace") for a in f.read().split(b"\0") if a]
+            except OSError:
+                continue
+            cmdlines.append([os.path.basename(a) if a.startswith("/") else a for a in args])
+    return cmdlines
+
 
 def service_states() -> dict[str, tuple[bool, str | None]]:
     """{service: (up, pid)} for each long-running service, from s6-svstat."""
