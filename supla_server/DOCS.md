@@ -76,6 +76,8 @@ If you used to bridge your Mosquitto broker to SUPLA's MQTT broker (`mqttXXX.sup
 
 Don't change 2016 or 2015: devices and the SUPLA mobile apps always connect to those ports, and neither lets you set another. The web UI port can be anything.
 
+With 2015 off, SUPLA Cloud's server status reports the server as down: `/api/server-status` answers "503" with `{"status":"CANNOT_CONNECT_2015: Connection refused (111)"}`, and `/api/v2.4.0/server-info` has the same text in `serverStatus`. The check connects to `host_address` on port 2015 as well as 2016. Devices connect to supla-server directly and aren't affected.
+
 ## Internet access
 
 The app blocks its own Internet access: it can only reach your local network. Devices, the SUPLA mobile apps, the web UI and MQTT only need your local network, so they work as usual. To let the app reach the Internet, turn on `internet_access`.
