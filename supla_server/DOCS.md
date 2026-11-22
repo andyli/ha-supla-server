@@ -75,6 +75,46 @@ If you used to bridge your Mosquitto broker to SUPLA's MQTT broker (`mqttXXX.sup
 
 Don't change 2016 or 2015: devices and the SUPLA mobile apps always connect to those ports, and neither lets you set another. The web UI port can be anything.
 
+## Internet access
+
+The app works without Internet access. Devices, the SUPLA mobile apps, the web UI and MQTT only need your local network.
+
+It does contact SUPLA's servers by itself, even if you never use an online feature. This section lists what it contacts, from reading the source of SUPLA Cloud 26.05.01 and supla-server 26.05, so you can decide whether to block it.
+
+### What it contacts without you doing anything
+
+All three go to `autodiscover.supla.org`. They send the SUPLA Cloud version, not your account, devices or data.
+
+| Part | Address | How often | What for |
+|---|---|---|---|
+| supla-server | `https://autodiscover.supla.org/service-tokens` | Every minute from start (every hour once SUPLA refuses) | Tokens for push notifications and Google Home. SUPLA gives none to servers not registered with it, and this app doesn't register. |
+| SUPLA Cloud | `https://autodiscover.supla.org/energy-price-forecast` | Every 5 minutes | Polish energy market prices, for "energy price forecast" channels. |
+| SUPLA Cloud | `https://autodiscover.supla.org/esp-updates` | Every 2 hours | The list of firmware updates for older ESP-based devices. |
+
+### What it contacts only when you use a feature
+
+| Feature | Address | Sends |
+|---|---|---|
+| OpenWeather channels | `autodiscover.supla.org` | The city, every 5 minutes while such a channel exists. |
+| Unlocking a locked device | `autodiscover.supla.org` | The device's name and ID, and the email addresses of its owner and of the person unlocking it. |
+| Signing in to a third-party app that SUPLA Cloud doesn't know yet (OAuth) | `autodiscover.supla.org` | The app's client ID. |
+| State webhooks, set up by a third-party app | The address the app gave | Channel states. |
+| Push notifications, Alexa, Google Home | SUPLA's push servers, Amazon, Google | Nothing: these need the server registered with SUPLA, so they never start. |
+| Email | None | Nothing: the app sends no email. |
+
+### What you lose by blocking it
+
+Energy price forecast channels, OpenWeather channels, device unlocking, and the firmware update list for older ESP devices. Push notifications, Alexa and Google Home don't work in this app either way.
+
+### How to block it
+
+There is no option in the app for this yet. Two things to know if you block it outside the app, for example on your router or DNS server:
+
+- **Block it by name, not by Home Assistant's address.** The app's traffic leaves from Home Assistant's own IP address, so a rule for that address blocks Home Assistant too. Blocking `autodiscover.supla.org` in a DNS blocker such as Pi-hole or AdGuard Home stops all the traffic listed above, except webhooks you set up.
+- **Make blocked connections fail at once.** If you block with a firewall, reject the connection instead of dropping it. SUPLA Cloud sets no time limit on its requests, so with a dropped connection each one waits about 5 minutes. That holds up the app's other periodic jobs, such as running schedules. A DNS blocker fails at once.
+
+Blocking the app doesn't stop your devices or phones from reaching the Internet. The SUPLA mobile app contacts `autodiscover.supla.org` when **Auto** is on (see [Connecting the SUPLA mobile app](#connecting-the-supla-mobile-app)). Devices download firmware from `updates.supla.org` when you update them.
+
 ## Backups
 
 Home Assistant backups include the app's data. Before each backup the app writes a dump of the database to `/data/backup/supla.sql.gz`. The backup contains this dump, not the raw database files. When you restore a backup, the app rebuilds the database from the dump on its next start.
