@@ -127,7 +127,7 @@ On `main`, each test job then pushes the image it has just tested to `image` in 
 
 The Dagger functions behind this also work locally: `dagger call image-ref` prints the reference for your machine's arch, and `dagger call publish` pushes with your `docker login` credentials.
 
-The GHCR packages must be public for Home Assistant to pull them. GitHub makes a new package private, so after the first publish of each arch, open the package's **Package settings** and change its visibility to public.
+The GHCR packages must be public for Home Assistant to pull them. They took the public visibility of this repository when they were first published. Check it in each package's **Package settings** if pulls fail with an authentication error.
 
 ### Updating SUPLA
 

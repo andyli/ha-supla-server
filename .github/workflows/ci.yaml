@@ -72,6 +72,9 @@ jobs:
           if docker manifest inspect "$ref" > /dev/null 2>&1; then
             echo "::notice::$ref is already published; bump version in supla_server/config.yaml to publish a new image."
           else
-            dagger --silent call publish
+            # Captured because the output has no trailing newline, and a workflow command must start a line.
+            # A plain assignment keeps publish's exit status, so the step still fails if it fails.
+            pushed=$(dagger --silent call publish)
+            echo "Pushed $pushed"
             echo "::notice::Published $ref"
           fi
